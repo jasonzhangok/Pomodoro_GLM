@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Callable, Optional
 
 from PyQt6.QtCore import QObject, QSize, Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QAction, QColor, QFont, QImage, QPainter, QPixmap
+from PyQt6.QtGui import QAction, QColor, QFont, QImage, QIcon, QPainter, QPixmap
 from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
 from core.phases import Phase
@@ -133,7 +133,7 @@ class TrayController(QObject):
         minutes = remaining // 60
         seconds = remaining % 60
         text = f"{emoji} {minutes:02d}:{seconds:02d}"
-        self._tray.setIcon(_render_tray_icon(text))
+        self._tray.setIcon(QIcon(_render_tray_icon(text)))
         # Update start/pause label
         if self._action_start_pause is not None:
             if self.engine.running:
