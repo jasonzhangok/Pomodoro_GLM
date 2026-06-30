@@ -377,7 +377,7 @@ class FloatingMiniWindow(QWidget):
     window has no title bar but is still freely movable.
     """
 
-    def __init__(self, get_remaining_text, get_phase_label, get_phase, parent=None):
+    def __init__(self, get_remaining_text, get_phase_label, get_phase, on_toggle_back, parent=None):
         super().__init__(parent)
         self.setWindowTitle("番茄钟 · 悬浮窗")
         self.setWindowFlags(
@@ -390,11 +390,12 @@ class FloatingMiniWindow(QWidget):
 
         # Track drag offset
         self._drag_offset = None
+        self._on_toggle_back = on_toggle_back
 
-        # Root container (the visible rounded card)
+        # Root container (the visible rounded card) — low opacity
         self._container = QFrame(self)
         self._container.setStyleSheet(
-            "QFrame { background-color: rgba(29,29,31,0.92);"
+            "QFrame { background-color: rgba(29,29,31,0.30);"
             " border-radius: 16px; }"
         )
         outer = QVBoxLayout(self)
@@ -439,6 +440,11 @@ class FloatingMiniWindow(QWidget):
         event.accept()
 
     def keyPressEvent(self, event):
+        # F toggles back to the main window; Esc just closes the floating window
+        if event.key() == Qt.Key.Key_F:
+            if self._on_toggle_back is not None:
+                self._on_toggle_back()
+            return
         if event.key() == Qt.Key.Key_Escape:
             self.close()
         else:
@@ -778,18 +784,37 @@ class MainWindow(QWidget):
     # floating mini window
     # ------------------------------------------------------------------
     def _toggle_floating_window(self):
+        # If floating window exists and is visible -> close it and show main window
         if self.floating_window is not None and self.floating_window.isVisible():
             self.floating_window.close()
             self.floating_window = None
+            self.show()
+            self.raise_()
+            self.activateWindow()
             return
+        # Otherwise -> hide main window and show floating window
+        self.hide()
         self.floating_window = FloatingMiniWindow(
             get_remaining_text=lambda: self.time_label.text(),
             get_phase_label=lambda: self.phase_label.text(),
             get_phase=lambda: self.engine.current_phase,
+            on_toggle_back=self._restore_main_from_floating,
             parent=None,
         )
         self.floating_window.show()
         self.floating_window.refresh()
+        # Focus the floating window so it receives the F key
+        self.floating_window.raise_()
+        self.floating_window.activateWindow()
+        self.floating_window.setFocus()
+
+    def _restore_main_from_floating(self):
+        if self.floating_window is not None:
+            self.floating_window.close()
+            self.floating_window = None
+        self.show()
+        self.raise_()
+        self.activateWindow()
 
     def keyPressEvent(self, event):
         # Toggle floating window with F key
