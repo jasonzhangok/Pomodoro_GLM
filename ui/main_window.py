@@ -369,6 +369,86 @@ class EditTaskDialog(QDialog):
         self.accept()
 
 
+class FloatingMiniWindow(QWidget):
+    """A small, draggable, always-on-top window showing the countdown.
+
+    Frameless + translucent-background so we can draw a rounded card.
+    Mouse drag is handled manually via mousePress/mouseMove events so the
+    window has no title bar but is still freely movable.
+    """
+
+    def __init__(self, get_remaining_text, get_phase_label, get_phase, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("番茄钟 · 悬浮窗")
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.Tool
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setFixedSize(180, 96)
+
+        # Track drag offset
+        self._drag_offset = None
+
+        # Root container (the visible rounded card)
+        self._container = QFrame(self)
+        self._container.setStyleSheet(
+            "QFrame { background-color: rgba(29,29,31,0.92);"
+            " border-radius: 16px; }"
+        )
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(self._container)
+
+        layout = QVBoxLayout(self._container)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(4)
+
+        self.time_label = QLabel()
+        self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.time_label.setStyleSheet(
+            "color: #ffffff; font-size: 34px; font-weight: 600;"
+        )
+        layout.addWidget(self.time_label)
+
+        self.phase_label = QLabel()
+        self.phase_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.phase_label.setStyleSheet("color: #98989f; font-size: 12px;")
+        layout.addWidget(self.phase_label)
+
+        self._get_remaining_text = get_remaining_text
+        self._get_phase_label = get_phase_label
+        self._get_phase = get_phase
+
+    # ------------------------------------------------------------------
+    # dragging
+    # ------------------------------------------------------------------
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_offset = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        if self._drag_offset is not None and event.buttons() & Qt.MouseButton.LeftButton:
+            self.move(event.globalPosition().toPoint() - self._drag_offset)
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        self._drag_offset = None
+        event.accept()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape:
+            self.close()
+        else:
+            super().keyPressEvent(event)
+
+    def refresh(self):
+        self.time_label.setText(self._get_remaining_text())
+        self.phase_label.setText(self._get_phase_label())
+
+
 class FocusModeOverlay(QWidget):
     """Borderless fullscreen overlay showing only the big countdown."""
 
@@ -418,6 +498,7 @@ class MainWindow(QWidget):
         self.store = store
         self.current_task_id: Optional[str] = None
         self.focus_overlay: Optional[FocusModeOverlay] = None
+        self.floating_window: Optional[FloatingMiniWindow] = None
         self._previous_phase: Optional[Phase] = None
 
         # Apply global stylesheet
@@ -582,6 +663,8 @@ class MainWindow(QWidget):
         self.time_label.setText(text)
         if self.focus_overlay is not None:
             self.focus_overlay.refresh()
+        if self.floating_window is not None:
+            self.floating_window.refresh()
 
     def _refresh_phase_label(self):
         phase = self.engine.current_phase
@@ -692,6 +775,30 @@ class MainWindow(QWidget):
         self.focus_overlay.refresh()
 
     # ------------------------------------------------------------------
+    # floating mini window
+    # ------------------------------------------------------------------
+    def _toggle_floating_window(self):
+        if self.floating_window is not None and self.floating_window.isVisible():
+            self.floating_window.close()
+            self.floating_window = None
+            return
+        self.floating_window = FloatingMiniWindow(
+            get_remaining_text=lambda: self.time_label.text(),
+            get_phase_label=lambda: self.phase_label.text(),
+            get_phase=lambda: self.engine.current_phase,
+            parent=None,
+        )
+        self.floating_window.show()
+        self.floating_window.refresh()
+
+    def keyPressEvent(self, event):
+        # Toggle floating window with F key
+        if event.key() == Qt.Key.Key_F:
+            self._toggle_floating_window()
+            return
+        super().keyPressEvent(event)
+
+    # ------------------------------------------------------------------
     # task list handlers
     # ------------------------------------------------------------------
     def _on_add_task_clicked(self):
@@ -750,4 +857,6 @@ class MainWindow(QWidget):
     def closeEvent(self, event):
         if self.focus_overlay is not None:
             self.focus_overlay.close()
+        if self.floating_window is not None:
+            self.floating_window.close()
         super().closeEvent(event)
