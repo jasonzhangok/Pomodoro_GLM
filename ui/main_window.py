@@ -377,7 +377,7 @@ class FloatingMiniWindow(QWidget):
     window has no title bar but is still freely movable.
     """
 
-    def __init__(self, get_remaining_text, get_phase_label, get_phase, on_toggle_back, parent=None):
+    def __init__(self, get_remaining_text, get_phase_label, get_phase, on_toggle_back, on_toggle_start_pause, parent=None):
         super().__init__(parent)
         self.setWindowTitle("番茄钟 · 悬浮窗")
         self.setWindowFlags(
@@ -391,6 +391,7 @@ class FloatingMiniWindow(QWidget):
         # Track drag offset
         self._drag_offset = None
         self._on_toggle_back = on_toggle_back
+        self._on_toggle_start_pause = on_toggle_start_pause
 
         # Root container (the visible rounded card) — low opacity
         self._container = QFrame(self)
@@ -444,6 +445,11 @@ class FloatingMiniWindow(QWidget):
         if event.key() == Qt.Key.Key_F:
             if self._on_toggle_back is not None:
                 self._on_toggle_back()
+            return
+        # Space toggles start/pause
+        if event.key() == Qt.Key.Key_Space:
+            if self._on_toggle_start_pause is not None:
+                self._on_toggle_start_pause()
             return
         if event.key() == Qt.Key.Key_Escape:
             self.close()
@@ -799,6 +805,7 @@ class MainWindow(QWidget):
             get_phase_label=lambda: self.phase_label.text(),
             get_phase=lambda: self.engine.current_phase,
             on_toggle_back=self._restore_main_from_floating,
+            on_toggle_start_pause=self._on_start_clicked,
             parent=None,
         )
         self.floating_window.show()
@@ -820,6 +827,10 @@ class MainWindow(QWidget):
         # Toggle floating window with F key
         if event.key() == Qt.Key.Key_F:
             self._toggle_floating_window()
+            return
+        # Space toggles start/pause
+        if event.key() == Qt.Key.Key_Space:
+            self._on_start_clicked()
             return
         super().keyPressEvent(event)
 
