@@ -381,10 +381,12 @@ class FloatingMiniWindow(QWidget):
     def __init__(self, get_remaining_text, get_phase_label, get_phase, on_toggle_back, on_toggle_start_pause, parent=None):
         super().__init__(parent)
         self.setWindowTitle("番茄钟 · 悬浮窗")
+        # Frameless + always-on-top. NOTE: do NOT add Qt.WindowType.Tool —
+        # on macOS that makes the window a panel that auto-hides when the
+        # application loses focus (e.g. clicking another app's window).
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint
             | Qt.WindowType.WindowStaysOnTopHint
-            | Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedSize(180, 96)
