@@ -396,10 +396,10 @@ class FloatingMiniWindow(QWidget):
         self._on_toggle_back = on_toggle_back
         self._on_toggle_start_pause = on_toggle_start_pause
 
-        # Root container (the visible rounded card) — low opacity
+        # Root container (the visible rounded card)
         self._container = QFrame(self)
         self._container.setStyleSheet(
-            "QFrame { background-color: rgba(29,29,31,0.30);"
+            "QFrame { background-color: rgba(29,29,31,0.78);"
             " border-radius: 16px; }"
         )
         outer = QVBoxLayout(self)
@@ -413,13 +413,13 @@ class FloatingMiniWindow(QWidget):
         self.time_label = QLabel()
         self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.time_label.setStyleSheet(
-            "color: #ffffff; font-size: 34px; font-weight: 600;"
+            "color: #ffffff; font-size: 34px; font-weight: 700;"
         )
         layout.addWidget(self.time_label)
 
         self.phase_label = QLabel()
         self.phase_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.phase_label.setStyleSheet("color: #98989f; font-size: 12px;")
+        self.phase_label.setStyleSheet("color: #e5e5ea; font-size: 12px; font-weight: 500;")
         layout.addWidget(self.phase_label)
 
         self._get_remaining_text = get_remaining_text
