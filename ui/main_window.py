@@ -24,6 +24,7 @@ from typing import Optional
 
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (
+    QApplication,
     QDialog,
     QFrame,
     QHBoxLayout,
@@ -891,8 +892,12 @@ class MainWindow(QWidget):
     # cleanup
     # ------------------------------------------------------------------
     def closeEvent(self, event):
+        # Stop timers so nothing keeps running in the background.
+        self.refresh_timer.stop()
         if self.focus_overlay is not None:
             self.focus_overlay.close()
         if self.floating_window is not None:
             self.floating_window.close()
+        # Quit the whole app so the terminal process exits cleanly.
+        QApplication.quit()
         super().closeEvent(event)
