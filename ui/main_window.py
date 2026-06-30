@@ -99,6 +99,16 @@ QPushButton:disabled {
     border-color: #e5e5ea;
 }
 
+/* Icon-only buttons (square, no padding so the glyph is visible) */
+QPushButton#IconBtn {
+    padding: 0;
+    font-size: 16px;
+}
+QPushButton#IconBtn:hover {
+    background-color: #f0f0f2;
+    border-color: #b0b0b5;
+}
+
 /* Primary action button (开始) */
 QPushButton#PrimaryBtn {
     background-color: #ff3b30;
@@ -213,9 +223,8 @@ class TaskRowWidget(QFrame):
 
         # Done toggle button (checkbox-like)
         self.done_btn = QPushButton("☐")
-        self.done_btn.setObjectName("GhostBtn")
-        self.done_btn.setFixedWidth(28)
-        self.done_btn.setFixedHeight(28)
+        self.done_btn.setObjectName("IconBtn")
+        self.done_btn.setFixedSize(28, 28)
         self.done_btn.clicked.connect(lambda: on_toggle_done(task))
         layout.addWidget(self.done_btn)
 
@@ -232,18 +241,20 @@ class TaskRowWidget(QFrame):
         layout.addLayout(info, stretch=1)
 
         # Action buttons
-        self.start_btn = QPushButton("▶")
-        self.start_btn.setFixedSize(32, 32)
+        self.start_btn = QPushButton("▶ 开始")
+        self.start_btn.setObjectName("IconBtn")
+        self.start_btn.setFixedSize(64, 32)
         self.start_btn.clicked.connect(lambda: on_start(task))
         layout.addWidget(self.start_btn)
 
-        self.edit_btn = QPushButton("✎")
-        self.edit_btn.setFixedSize(32, 32)
+        self.edit_btn = QPushButton("✎ 编辑")
+        self.edit_btn.setObjectName("IconBtn")
+        self.edit_btn.setFixedSize(64, 32)
         self.edit_btn.clicked.connect(lambda: on_edit(task))
         layout.addWidget(self.edit_btn)
 
         self.del_btn = QPushButton("✕")
-        self.del_btn.setObjectName("GhostBtn")
+        self.del_btn.setObjectName("IconBtn")
         self.del_btn.setFixedSize(32, 32)
         self.del_btn.setStyleSheet("color: #ff3b30;")
         self.del_btn.clicked.connect(lambda: on_delete(task))
