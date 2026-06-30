@@ -1,0 +1,12 @@
+{
+  "settings": {
+    "focus_minutes": 25,
+    "short_break_minutes": 5,
+    "long_break_minutes": 15,
+    "pomodoros_before_long_break": 4,
+    "auto_start_next": false,
+    "display_mode": "mmss"
+  },
+  "tasks": [],
+  "records": []
+}

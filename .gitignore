@@ -1,0 +1,31 @@
+# venv
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Project data (keep structure, ignore user data)
+data/data.json
+data/*.tmp
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
