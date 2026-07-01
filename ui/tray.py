@@ -23,14 +23,14 @@ PHASE_EMOJI = {
 }
 
 
-def _render_tray_icon(text: str) -> QPixmap:
-    """Render text into a QPixmap suitable for the tray icon.
+def _render_tray_icon(line1: str, line2: str) -> QPixmap:
+    """Render two lines of text into a QPixmap suitable for the tray icon.
 
     On macOS the menu bar is dark, so we draw white text on a transparent
-    background. The image is sized to fit comfortably in the menu bar.
+    background.
     """
     font = QFont()
-    font.setPointSize(13)
+    font.setPointSize(15)
     font.setBold(True)
 
     # Use a temporary painter to measure the text.
@@ -38,8 +38,10 @@ def _render_tray_icon(text: str) -> QPixmap:
     painter = QPainter(tmp)
     painter.setFont(font)
     metrics = painter.fontMetrics()
-    width = metrics.horizontalAdvance(text) + 6
-    height = metrics.height() + 4
+    line_height = metrics.height()
+    width = max(metrics.horizontalAdvance(line1),
+                metrics.horizontalAdvance(line2)) + 8
+    height = line_height * 2 + 6
     painter.end()
 
     pixmap = QPixmap(width, height)
@@ -47,7 +49,15 @@ def _render_tray_icon(text: str) -> QPixmap:
     painter = QPainter(pixmap)
     painter.setFont(font)
     painter.setPen(QColor(255, 255, 255))
-    painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, text)
+    # Draw line 1 in the top half, line 2 in the bottom half
+    painter.drawText(
+        0, 0, width, line_height + 3,
+        Qt.AlignmentFlag.AlignCenter, line1,
+    )
+    painter.drawText(
+        0, line_height + 3, width, line_height + 3,
+        Qt.AlignmentFlag.AlignCenter, line2,
+    )
     painter.end()
     return pixmap
 
@@ -127,12 +137,13 @@ class TrayController(QObject):
     def _refresh_icon(self):
         if self._tray is None:
             return
-        # Show only the countdown (no emoji) for clarity in the menu bar.
+        # Show two-line countdown: MM on top, SS on bottom
         remaining = self.engine.remaining_seconds
         minutes = remaining // 60
         seconds = remaining % 60
-        text = f"{minutes:02d}:{seconds:02d}"
-        self._tray.setIcon(QIcon(_render_tray_icon(text)))
+        self._tray.setIcon(
+            QIcon(_render_tray_icon(f"{minutes:02d}", f"{seconds:02d}"))
+        )
         # Update start/pause label
         if self._action_start_pause is not None:
             if self.engine.running:
