@@ -30,7 +30,7 @@ def _render_tray_icon(text: str) -> QPixmap:
     background. The image is sized to fit comfortably in the menu bar.
     """
     font = QFont()
-    font.setPointSize(11)
+    font.setPointSize(13)
     font.setBold(True)
 
     # Use a temporary painter to measure the text.
@@ -38,8 +38,8 @@ def _render_tray_icon(text: str) -> QPixmap:
     painter = QPainter(tmp)
     painter.setFont(font)
     metrics = painter.fontMetrics()
-    width = metrics.horizontalAdvance(text) + 4
-    height = metrics.height() + 2
+    width = metrics.horizontalAdvance(text) + 6
+    height = metrics.height() + 4
     painter.end()
 
     pixmap = QPixmap(width, height)
@@ -127,12 +127,11 @@ class TrayController(QObject):
     def _refresh_icon(self):
         if self._tray is None:
             return
-        phase = self.engine.current_phase
-        emoji = PHASE_EMOJI.get(phase, "🍅")
+        # Show only the countdown (no emoji) for clarity in the menu bar.
         remaining = self.engine.remaining_seconds
         minutes = remaining // 60
         seconds = remaining % 60
-        text = f"{emoji} {minutes:02d}:{seconds:02d}"
+        text = f"{minutes:02d}:{seconds:02d}"
         self._tray.setIcon(QIcon(_render_tray_icon(text)))
         # Update start/pause label
         if self._action_start_pause is not None:
