@@ -152,15 +152,16 @@ class TimerEngine:
         new_duration = self.state_machine.current_duration_seconds()
         self.remaining_seconds = new_duration
         self.phase_started_at = time.time()
-        self._emit_phase_change()
-        # Auto-start next phase or stop
+        # Set running state BEFORE emitting callbacks, so the UI sees the
+        # correct running flag when it refreshes controls.
         if self.settings.auto_start_next:
             self.running = True
             self.end_timestamp = time.time() + self.remaining_seconds
-            self._emit_tick()
         else:
             self.running = False
             self.end_timestamp = None
+        self._emit_phase_change()
+        self._emit_tick()
 
     # ------------------------------------------------------------------
     # task binding
