@@ -194,13 +194,14 @@ class TestTimerEngine:
         # Should have fired with the new phase (short break)
         assert any(p == Phase.SHORT_BREAK for p, _ in seen)
 
-    def test_auto_start_next_advances_and_keeps_running(self):
-        eng = self._make(focus_minutes=1, short_break_minutes=2, auto_start_next=True)
+    def test_phase_end_stops_engine(self):
+        """After a natural phase end, engine stops and button shows 开始."""
+        eng = self._make(focus_minutes=1, short_break_minutes=2)
         eng.start()
         eng.end_timestamp = 0
         eng.tick()
         assert eng.current_phase == Phase.SHORT_BREAK
-        assert eng.running is True
+        assert eng.running is False
 
     def test_bind_task(self):
         eng = self._make()

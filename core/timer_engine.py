@@ -104,12 +104,10 @@ class TimerEngine:
     def skip(self) -> None:
         """Skip the current phase and advance to the next one.
 
-        If the skipped phase was a focus session, the focus-completed
-        callback fires with completed=False semantics handled by the caller
-        via record bookkeeping (we only emit on_focus_completed when a
-        focus phase actually completes naturally; skips just advance).
+        The engine always stops after a skip — the user must press 开始
+        to start the next phase.
         """
-        # Just advance the state machine and start the next phase fresh.
+        # Just advance the state machine and stop.
         self.state_machine.advance()
         self.running = False
         self.end_timestamp = None
@@ -117,9 +115,6 @@ class TimerEngine:
         self.phase_started_at = time.time()
         self._emit_tick()
         self._emit_phase_change()
-        # Honor auto-start setting for the new phase
-        if self.settings.auto_start_next:
-            self.start()
 
     def tick(self) -> None:
         """Called once per second by the host timer.
@@ -142,7 +137,11 @@ class TimerEngine:
     # phase completion
     # ------------------------------------------------------------------
     def _on_phase_complete(self) -> None:
-        """Handle end-of-phase: record focus if applicable, then advance."""
+        """Handle end-of-phase: record focus if applicable, then advance.
+
+        The engine always stops after a phase ends — the user must press
+        开始 to continue. This applies to both natural completion and skip.
+        """
         phase = self.state_machine.current_phase
         if phase == Phase.FOCUS:
             # A focus session completed naturally.
@@ -152,14 +151,9 @@ class TimerEngine:
         new_duration = self.state_machine.current_duration_seconds()
         self.remaining_seconds = new_duration
         self.phase_started_at = time.time()
-        # Set running state BEFORE emitting callbacks, so the UI sees the
-        # correct running flag when it refreshes controls.
-        if self.settings.auto_start_next:
-            self.running = True
-            self.end_timestamp = time.time() + self.remaining_seconds
-        else:
-            self.running = False
-            self.end_timestamp = None
+        # Always stop: the user controls when the next phase starts.
+        self.running = False
+        self.end_timestamp = None
         self._emit_phase_change()
         self._emit_tick()
 
