@@ -19,7 +19,7 @@ and refreshes the displayed time. This avoids drift from a separate
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from PyQt6.QtCore import Qt, QTimer
@@ -52,6 +52,41 @@ PHASE_LABELS = {
     Phase.SHORT_BREAK: "短休息",
     Phase.LONG_BREAK: "长休息",
 }
+
+
+def _parse_iso(s: str) -> datetime:
+    """Parse an ISO timestamp string into a datetime object."""
+    try:
+        return datetime.fromisoformat(s)
+    except (ValueError, TypeError):
+        return datetime.now()
+
+
+def compute_stats(records: list[PomodoroRecord], settings) -> dict:
+    """Compute focus stats over four time windows.
+
+    Returns a dict keyed by window name, each containing:
+        - count: number of completed focus sessions
+        - minutes: total focus minutes (one session = focus_minutes)
+    """
+    now = datetime.now()
+    focus_minutes = settings.focus_minutes
+    windows = {
+        "12h": now - timedelta(hours=12),
+        "1d": now - timedelta(days=1),
+        "3d": now - timedelta(days=3),
+        "1w": now - timedelta(weeks=1),
+    }
+    stats = {k: {"count": 0, "minutes": 0} for k in windows}
+    for r in records:
+        if not r.completed or r.phase != "focus":
+            continue
+        started = _parse_iso(r.started_at)
+        for key, cutoff in windows.items():
+            if started >= cutoff:
+                stats[key]["count"] += 1
+                stats[key]["minutes"] += focus_minutes
+    return stats
 
 # Global QSS stylesheet — modern, macOS-inspired
 GLOBAL_QSS = """
@@ -590,6 +625,10 @@ class MainWindow(QWidget):
         self.focus_btn.setObjectName("GhostBtn")
         self.focus_btn.clicked.connect(self._on_focus_mode_clicked)
         focus_row.addWidget(self.focus_btn)
+        # Stats button
+        self.stats_btn = QPushButton("📊 统计")
+        self.stats_btn.clicked.connect(self._on_stats_clicked)
+        focus_row.addWidget(self.stats_btn)
         root.addLayout(focus_row)
 
         # --- Separator ---
@@ -889,6 +928,50 @@ class MainWindow(QWidget):
             task.status = "done"
         self.store.update_task(task)
         self._refresh_task_list()
+
+    # ------------------------------------------------------------------
+    # stats dialog
+    # ------------------------------------------------------------------
+    def _on_stats_clicked(self):
+        records = self.store.get_records()
+        settings = self.store.get_settings()
+        stats = compute_stats(records, settings)
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("专注统计")
+        dlg.setMinimumWidth(360)
+        layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
+
+        title = QLabel("📊 专注统计")
+        title.setStyleSheet("font-size: 18px; font-weight: 600;")
+        layout.addWidget(title)
+
+        hint = QLabel("每个专注 = {} 分钟".format(settings.focus_minutes))
+        hint.setStyleSheet("color: #86868b; font-size: 12px;")
+        layout.addWidget(hint)
+
+        # Header row
+        header = QHBoxLayout()
+        header.addWidget(QLabel("区间"))
+        header.addWidget(QLabel("次数"))
+        header.addWidget(QLabel("时长"))
+        layout.addLayout(header)
+
+        for key in ("12h", "1d", "3d", "1w"):
+            row = QHBoxLayout()
+            row.addWidget(QLabel(key))
+            row.addWidget(QLabel(str(stats[key]["count"])))
+            hours = stats[key]["minutes"] / 60
+            row.addWidget(QLabel(f"{hours:.1f}h"))
+            layout.addLayout(row)
+
+        close_btn = QPushButton("关闭")
+        close_btn.clicked.connect(dlg.accept)
+        layout.addWidget(close_btn)
+
+        dlg.exec()
 
     # ------------------------------------------------------------------
     # cleanup
