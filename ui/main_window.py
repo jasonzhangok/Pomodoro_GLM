@@ -755,6 +755,13 @@ class MainWindow(QWidget):
         self._refresh_phase_label()
         self._refresh_controls()
         self._refresh_time_display()
+        # Notify the user when a phase ends and the next begins.
+        if phase == Phase.FOCUS:
+            notify("开始专注", "加油！保持专注")
+        elif phase == Phase.SHORT_BREAK:
+            notify("专注完成", "短休息一下 ☕")
+        elif phase == Phase.LONG_BREAK:
+            notify("周期完成", "长休息一下 🌿")
 
     def _on_engine_focus_completed(self, task_id: Optional[str]):
         """Record a completed focus session and update the bound task."""
@@ -790,7 +797,14 @@ class MainWindow(QWidget):
     def _on_refresh_timer(self):
         """Called every 250ms: tick the engine and refresh the display."""
         self.engine.tick()
+        self._refresh_controls()
         self._refresh_time_display()
+
+    def showEvent(self, event):
+        """Refresh controls when window is shown (tray controls may have changed state)."""
+        self._refresh_controls()
+        self._refresh_time_display()
+        super().showEvent(event)
 
     # ------------------------------------------------------------------
     # button handlers
