@@ -550,6 +550,7 @@ class MainWindow(QWidget):
         self.focus_overlay: Optional[FocusModeOverlay] = None
         self.floating_window: Optional[FloatingMiniWindow] = None
         self._previous_phase: Optional[Phase] = None
+        self.tray = None  # set by app.py after tray setup
 
         # Apply global stylesheet
         self.setStyleSheet(GLOBAL_QSS)
@@ -756,12 +757,21 @@ class MainWindow(QWidget):
         self._refresh_controls()
         self._refresh_time_display()
         # Notify the user when a phase ends and the next begins.
+        # Route through tray.show_message so clicking the notification
+        # opens the main window.
         if phase == Phase.FOCUS:
-            notify("休息结束", "准备开始专注")
+            self._notify("休息结束", "准备开始专注")
         elif phase == Phase.SHORT_BREAK:
-            notify("专注完成", "该短休息了")
+            self._notify("专注完成", "该短休息了")
         elif phase == Phase.LONG_BREAK:
-            notify("周期完成", "该长休息了")
+            self._notify("周期完成", "该长休息了")
+
+    def _notify(self, title: str, body: str) -> None:
+        """Send a notification via the tray if available, else osascript."""
+        if self.tray is not None:
+            self.tray.show_message(title, body)
+        else:
+            notify(title, body)
 
     def _on_engine_focus_completed(self, task_id: Optional[str]):
         """Record a completed focus session and update the bound task."""

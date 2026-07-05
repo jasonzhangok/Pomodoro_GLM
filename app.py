@@ -46,6 +46,10 @@ def main() -> int:
     tray = TrayController(engine=engine, app=app)
     tray_available = tray.setup()
 
+    # Give the window a reference to the tray so it can show clickable
+    # notifications that open the main window when clicked.
+    window.tray = tray
+
     # Wire tray signals
     def toggle_window():
         if window.isVisible():

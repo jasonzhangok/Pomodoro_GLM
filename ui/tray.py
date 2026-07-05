@@ -116,10 +116,29 @@ class TrayController(QObject):
 
         self._tray.setContextMenu(self._menu)
         self._tray.activated.connect(self._on_activated)
+        self._tray.messageClicked.connect(self._on_message_clicked)
 
         self._refresh_icon()
         self._tray.show()
         return True
+
+    def show_message(self, title: str, body: str) -> None:
+        """Show a native macOS notification via the tray icon.
+
+        Clicking the notification emits ``messageClicked``, which we wire
+        to ``toggle_window_requested`` so the main window opens.
+        """
+        if self._tray is None:
+            return
+        self._tray.showMessage(
+            title,
+            body,
+            QSystemTrayIcon.MessageIcon.Information,
+            5000,
+        )
+
+    def _on_message_clicked(self):
+        self.toggle_window_requested.emit()
 
     # ------------------------------------------------------------------
     # icon refresh
