@@ -757,11 +757,11 @@ class MainWindow(QWidget):
         self._refresh_time_display()
         # Notify the user when a phase ends and the next begins.
         if phase == Phase.FOCUS:
-            notify("开始专注", "加油！保持专注")
+            notify("休息结束", "准备开始专注")
         elif phase == Phase.SHORT_BREAK:
-            notify("专注完成", "短休息一下 ☕")
+            notify("专注完成", "该短休息了")
         elif phase == Phase.LONG_BREAK:
-            notify("周期完成", "长休息一下 🌿")
+            notify("周期完成", "该长休息了")
 
     def _on_engine_focus_completed(self, task_id: Optional[str]):
         """Record a completed focus session and update the bound task."""
