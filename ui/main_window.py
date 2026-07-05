@@ -767,11 +767,12 @@ class MainWindow(QWidget):
             self._notify("周期完成", "该长休息了")
 
     def _notify(self, title: str, body: str) -> None:
-        """Send a notification via the tray if available, else osascript."""
-        if self.tray is not None:
-            self.tray.show_message(title, body)
-        else:
-            notify(title, body)
+        """Send a notification via osascript (reliable on macOS).
+
+        Note: QSystemTrayIcon.showMessage() does not reliably display
+        notifications on macOS, so we use osascript instead.
+        """
+        notify(title, body)
 
     def _on_engine_focus_completed(self, task_id: Optional[str]):
         """Record a completed focus session and update the bound task."""
