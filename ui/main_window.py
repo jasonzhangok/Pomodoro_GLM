@@ -307,7 +307,6 @@ class TaskCheckBox(QPushButton):
         self.setFixedSize(28, 28)
         self.setCheckable(False)
         self.clicked.connect(self._toggle)
-        self._check_pixmap = None
 
     def isChecked(self) -> bool:
         return self._checked
@@ -324,9 +323,6 @@ class TaskCheckBox(QPushButton):
         return
 
     def paintEvent(self, event):
-        from PyQt6.QtGui import QPainter, QPixmap, QColor, QSvgRenderer
-        from PyQt6.QtCore import QRectF
-
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -340,19 +336,20 @@ class TaskCheckBox(QPushButton):
             painter.setPen(QColor("#d2d2d7"))
         painter.drawRoundedRect(rect, 6, 6)
 
-        # Checkmark
+        # Checkmark — draw with QPainterPath so we don't need QtSvg
         if self._checked:
-            if self._check_pixmap is None:
-                from PyQt6.QtSvg import QSvgRenderer
-                from PyQt6.QtCore import QByteArray
-                renderer = QSvgRenderer(QByteArray(self._CHECK_SVG.encode("utf-8")))
-                self._check_pixmap = QPixmap(28, 28)
-                self._check_pixmap.fill(QColor(0, 0, 0, 0))
-                p2 = QPainter(self._check_pixmap)
-                p2.setRenderHint(QPainter.RenderHint.Antialiasing)
-                renderer.render(p2)
-                p2.end()
-            painter.drawPixmap(0, 0, self._check_pixmap)
+            from PyQt6.QtGui import QPainterPath, QPen
+            path = QPainterPath()
+            path.moveTo(7, 14.5)
+            path.lineTo(12, 19.5)
+            path.lineTo(21, 9)
+            pen = QPen(QColor("#ffffff"))
+            pen.setWidthF(3)
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+            painter.setPen(pen)
+            painter.setBrush(Qt.BrushSpec.NoBrush)
+            painter.drawPath(path)
         painter.end()
 
 
