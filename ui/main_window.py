@@ -22,7 +22,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Optional
 
-from PyQt6.QtCore import QEvent, Qt, QTimer
+from PyQt6.QtCore import QEvent, QSize, Qt, QTimer
 from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
@@ -33,6 +33,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -253,7 +254,7 @@ class TaskRowWidget(QFrame):
         self.task = task
         self.setObjectName("TaskRow")
         # Grow/shrink with the parent; never exceed the viewport width.
-        self.setSizePolicy(QFrame.SizePolicy.Expanding, QFrame.SizePolicy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setMinimumWidth(0)
 
         layout = QHBoxLayout(self)
