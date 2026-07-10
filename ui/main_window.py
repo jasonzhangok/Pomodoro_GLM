@@ -350,7 +350,7 @@ class TaskCheckBox(QPushButton):
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
             painter.setPen(pen)
-            painter.setBrush(Qt.BrushSpec.NoBrush)
+            painter.setBrush(Qt.GlobalColor.transparent)
             painter.drawPath(path)
         painter.end()
 
