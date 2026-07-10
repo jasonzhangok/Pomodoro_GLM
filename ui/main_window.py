@@ -369,6 +369,7 @@ class Stepper(QFrame):
         self._min = minimum
         self._max = maximum
         self._value = minimum
+        self._editing = False
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -415,23 +416,30 @@ class Stepper(QFrame):
             self._refresh()
 
     def _on_text_changed(self, text: str):
-        """Track the numeric portion but don't reformat while editing."""
+        """Track the numeric portion but don't reformat while editing.
+
+        If the number exceeds the max, clamp it immediately and reformat.
+        """
         digits = text.replace("🍅", "").replace("×", "").replace(" ", "").strip()
         if digits.isdigit():
-            self._value = max(self._min, min(self._max, int(digits)))
+            parsed = int(digits)
+            if parsed > self._max:
+                # Clamp immediately and reformat so user sees the cap.
+                self._value = self._max
+                self._refresh()
+            elif parsed >= self._min:
+                self._value = parsed
+                # Update button enabled states while typing.
+                self._update_button_states()
 
     def _on_editing_finished(self):
         """Reformat display when the user finishes editing (focus lost / Enter)."""
         self._refresh()
 
-    def _refresh(self):
-        self.count_label.blockSignals(True)
-        self.count_label.setText(f"🍅 × {self._value}")
-        self.count_label.blockSignals(False)
-        # Disable buttons at boundaries
+    def _update_button_states(self):
+        """Enable/disable +/− buttons based on current value."""
         self.minus_btn.setEnabled(self._value > self._min)
         self.plus_btn.setEnabled(self._value < self._max)
-        # Apply disabled style
         if not self.minus_btn.isEnabled():
             self.minus_btn.setStyleSheet("color: #c7c7cc; background-color: #f5f5f7;")
         else:
@@ -440,6 +448,12 @@ class Stepper(QFrame):
             self.plus_btn.setStyleSheet("color: #c7c7cc; background-color: #f5f5f7;")
         else:
             self.plus_btn.setStyleSheet("")
+
+    def _refresh(self):
+        self.count_label.blockSignals(True)
+        self.count_label.setText(f"🍅 × {self._value}")
+        self.count_label.blockSignals(False)
+        self._update_button_states()
 
 
 class AddTaskDialog(QFrame):
