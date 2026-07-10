@@ -323,6 +323,9 @@ class TaskCheckBox(QPushButton):
         return
 
     def paintEvent(self, event):
+        from PyQt6.QtCore import QRectF
+        from PyQt6.QtGui import QPainterPath, QPen
+
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -338,7 +341,6 @@ class TaskCheckBox(QPushButton):
 
         # Checkmark — draw with QPainterPath so we don't need QtSvg
         if self._checked:
-            from PyQt6.QtGui import QPainterPath, QPen
             path = QPainterPath()
             path.moveTo(7, 14.5)
             path.lineTo(12, 19.5)
