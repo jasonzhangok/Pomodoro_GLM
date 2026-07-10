@@ -170,6 +170,45 @@ QPushButton#GhostBtn:hover {
     color: #1d1d1f;
 }
 
+/* Custom stepper */
+QFrame#Stepper {
+    border: 1px solid #d2d2d7;
+    border-radius: 8px;
+    background-color: #ffffff;
+}
+QPushButton#StepperBtn {
+    border: none;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: 600;
+    padding: 0;
+    color: #1d1d1f;
+}
+QPushButton#StepperBtn:hover {
+    background-color: #f0f0f2;
+}
+QPushButton#StepperBtn:pressed {
+    background-color: #e5e5ea;
+}
+QPushButton#StepperBtn:disabled {
+    color: #c7c7cc;
+    background-color: #f5f5f7;
+}
+QLineEdit#StepperValue {
+    border: none;
+    border-left: 1px solid #e5e5ea;
+    border-right: 1px solid #e5e5ea;
+    border-radius: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: #1d1d1f;
+    background-color: #ffffff;
+    padding: 0 4px;
+}
+QLineEdit#StepperValue:focus {
+    background-color: #f5f5f7;
+}
+
 /* Task row card */
 QFrame#TaskRow {
     background-color: #ffffff;
@@ -321,8 +360,88 @@ class TaskRowWidget(QFrame):
         self._refresh_state()
 
 
+class Stepper(QFrame):
+    """Custom stepper: [−] [🍅 × N] [＋] with inline-editable count."""
+
+    def __init__(self, minimum=1, maximum=20, parent=None):
+        super().__init__(parent)
+        self.setObjectName("Stepper")
+        self._min = minimum
+        self._max = maximum
+        self._value = minimum
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        self.minus_btn = QPushButton("−")
+        self.minus_btn.setObjectName("StepperBtn")
+        self.minus_btn.setFixedSize(32, 32)
+        self.minus_btn.clicked.connect(self._decrement)
+        layout.addWidget(self.minus_btn)
+
+        self.count_label = QLineEdit()
+        self.count_label.setObjectName("StepperValue")
+        self.count_label.setReadOnly(False)
+        self.count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.count_label.setFixedHeight(32)
+        self.count_label.textChanged.connect(self._on_text_changed)
+        layout.addWidget(self.count_label)
+
+        self.plus_btn = QPushButton("＋")
+        self.plus_btn.setObjectName("StepperBtn")
+        self.plus_btn.setFixedSize(32, 32)
+        self.plus_btn.clicked.connect(self._increment)
+        layout.addWidget(self.plus_btn)
+
+        self._refresh()
+
+    def value(self) -> int:
+        return self._value
+
+    def setValue(self, val: int) -> None:
+        self._value = max(self._min, min(self._max, val))
+        self._refresh()
+
+    def _increment(self):
+        if self._value < self._max:
+            self._value += 1
+            self._refresh()
+
+    def _decrement(self):
+        if self._value > self._min:
+            self._value -= 1
+            self._refresh()
+
+    def _on_text_changed(self, text: str):
+        digits = text.replace("🍅", "").replace("×", "").replace(" ", "").strip()
+        if digits.isdigit():
+            self._value = max(self._min, min(self._max, int(digits)))
+            self._refresh()
+        elif digits == "":
+            self._value = self._min
+            self._refresh()
+
+    def _refresh(self):
+        self.count_label.blockSignals(True)
+        self.count_label.setText(f"🍅 × {self._value}")
+        self.count_label.blockSignals(False)
+        # Disable buttons at boundaries
+        self.minus_btn.setEnabled(self._value > self._min)
+        self.plus_btn.setEnabled(self._value < self._max)
+        # Apply disabled style
+        if not self.minus_btn.isEnabled():
+            self.minus_btn.setStyleSheet("color: #c7c7cc; background-color: #f5f5f7;")
+        else:
+            self.minus_btn.setStyleSheet("")
+        if not self.plus_btn.isEnabled():
+            self.plus_btn.setStyleSheet("color: #c7c7cc; background-color: #f5f5f7;")
+        else:
+            self.plus_btn.setStyleSheet("")
+
+
 class AddTaskDialog(QFrame):
-    """Inline add-task form: title input + estimated pomodoros + add button."""
+    """Inline add-task form: title input + custom stepper + add button."""
 
     def __init__(self, on_add, parent=None):
         super().__init__(parent)
@@ -335,17 +454,16 @@ class AddTaskDialog(QFrame):
 
         self.title_input = QLineEdit()
         self.title_input.setPlaceholderText("新任务标题…")
+        self.title_input.setFixedHeight(32)
         self.title_input.returnPressed.connect(self._submit)
         layout.addWidget(self.title_input, stretch=1)
 
-        self.spin = QSpinBox()
-        self.spin.setRange(1, 99)
-        self.spin.setValue(1)
-        self.spin.setPrefix("🍅×")
-        layout.addWidget(self.spin)
+        self.stepper = Stepper(minimum=1, maximum=20)
+        layout.addWidget(self.stepper)
 
         self.add_btn = QPushButton("+ 添加")
         self.add_btn.setObjectName("PrimaryBtn")
+        self.add_btn.setFixedHeight(32)
         self.add_btn.clicked.connect(self._submit)
         layout.addWidget(self.add_btn)
 
@@ -353,10 +471,10 @@ class AddTaskDialog(QFrame):
         title = self.title_input.text().strip()
         if not title:
             return
-        est = self.spin.value()
+        est = self.stepper.value()
         self.on_add(title, est)
         self.title_input.clear()
-        self.spin.setValue(1)
+        self.stepper.setValue(1)
 
 
 class EditTaskDialog(QDialog):
