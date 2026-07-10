@@ -22,7 +22,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Optional
 
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import QEvent, Qt, QTimer
 from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
@@ -908,6 +908,20 @@ class MainWindow(QWidget):
         self.add_form.setVisible(not self.add_form.isVisible())
         if self.add_form.isVisible():
             self.add_form.title_input.setFocus()
+            # Install event filter to catch clicks outside the form.
+            QApplication.instance().installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        """Close the add-task form when clicking outside it."""
+        if self.add_form.isVisible() and event.type() == QEvent.Type.MouseButtonPress:
+            # Map the global click position to the form's coordinate space.
+            global_pos = event.globalPosition().toPoint()
+            form_pos = self.add_form.mapFromGlobal(global_pos)
+            if not self.add_form.rect().contains(form_pos):
+                self.add_form.setVisible(False)
+                QApplication.instance().removeEventFilter(self)
+                return True  # event handled
+        return super().eventFilter(obj, event)
 
     def _on_add_task_submit(self, title: str, estimated: int):
         task = Task(title=title, estimated_pomodoros=estimated)
