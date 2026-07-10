@@ -252,23 +252,29 @@ class TaskRowWidget(QFrame):
         super().__init__(parent)
         self.task = task
         self.setObjectName("TaskRow")
+        # Grow/shrink with the parent; never exceed the viewport width.
+        self.setSizePolicy(QFrame.SizePolicy.Expanding, QFrame.SizePolicy.Fixed)
+        self.setMinimumWidth(0)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(10)
 
-        # Done toggle button (checkbox-like)
+        # Done toggle button (checkbox-like) — fixed, never compressed.
         self.done_btn = QPushButton("☐")
         self.done_btn.setObjectName("IconBtn")
         self.done_btn.setFixedSize(28, 28)
         self.done_btn.clicked.connect(lambda: on_toggle_done(task))
         layout.addWidget(self.done_btn)
 
-        # Title + count
+        # Title + count — flex middle, takes remaining space.
         info = QVBoxLayout()
         info.setSpacing(2)
         self.title_label = QLabel(task.title)
         self.title_label.setObjectName("TaskTitle")
+        # Allow wrapping + eliding so long titles never push buttons out.
+        self.title_label.setWordWrap(True)
+        self.title_label.setTextFormat(Qt.TextFormat.PlainText)
         count_text = f"🍅 {task.actual_pomodoros}/{task.estimated_pomodoros}"
         self.count_label = QLabel(count_text)
         self.count_label.setObjectName("TaskCount")
@@ -276,7 +282,7 @@ class TaskRowWidget(QFrame):
         info.addWidget(self.count_label)
         layout.addLayout(info, stretch=1)
 
-        # Action buttons
+        # Action buttons — fixed, never compressed.
         self.start_btn = QPushButton("▶ 开始")
         self.start_btn.setObjectName("IconBtn")
         self.start_btn.setFixedSize(64, 32)
