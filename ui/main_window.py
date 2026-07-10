@@ -400,9 +400,9 @@ class TaskRowWidget(QFrame):
         self.edit_btn.clicked.connect(lambda: on_edit(task))
         layout.addWidget(self.edit_btn)
 
-        self.del_btn = QPushButton("✕")
+        self.del_btn = QPushButton("✕ 删除")
         self.del_btn.setObjectName("IconBtn")
-        self.del_btn.setFixedSize(32, 32)
+        self.del_btn.setFixedSize(64, 32)
         self.del_btn.setStyleSheet("color: #ff3b30;")
         self.del_btn.clicked.connect(lambda: on_delete(task))
         layout.addWidget(self.del_btn)
