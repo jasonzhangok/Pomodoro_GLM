@@ -386,6 +386,7 @@ class Stepper(QFrame):
         self.count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.count_label.setFixedHeight(32)
         self.count_label.textChanged.connect(self._on_text_changed)
+        self.count_label.editingFinished.connect(self._on_editing_finished)
         layout.addWidget(self.count_label)
 
         self.plus_btn = QPushButton("＋")
@@ -414,13 +415,14 @@ class Stepper(QFrame):
             self._refresh()
 
     def _on_text_changed(self, text: str):
+        """Track the numeric portion but don't reformat while editing."""
         digits = text.replace("🍅", "").replace("×", "").replace(" ", "").strip()
         if digits.isdigit():
             self._value = max(self._min, min(self._max, int(digits)))
-            self._refresh()
-        elif digits == "":
-            self._value = self._min
-            self._refresh()
+
+    def _on_editing_finished(self):
+        """Reformat display when the user finishes editing (focus lost / Enter)."""
+        self._refresh()
 
     def _refresh(self):
         self.count_label.blockSignals(True)
