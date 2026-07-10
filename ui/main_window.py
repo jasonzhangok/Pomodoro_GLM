@@ -318,9 +318,6 @@ class TaskCheckBox(QPushButton):
     def _toggle(self):
         self._checked = not self._checked
         self.update()
-        self.clicked.emit()  # re-emit so handler runs
-        # Block further handling — we already toggled.
-        return
 
     def paintEvent(self, event):
         from PyQt6.QtCore import QRectF
