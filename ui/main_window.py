@@ -285,6 +285,77 @@ def _phase_color(phase: Phase) -> str:
     return "#5856d6"  # long break
 
 
+class TaskCheckBox(QPushButton):
+    """Custom checkbox drawn via paintEvent.
+
+    Draws a rounded square; when checked, paints a white checkmark
+    centred in the square. Size / corner-radius stay identical in both
+    states so toggling never shifts the row.
+    """
+
+    # SVG checkmark path, drawn in white
+    _CHECK_SVG = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">'
+        '<path d="M7 14.5 L12 19.5 L21 9" stroke="white" stroke-width="3"'
+        ' stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
+    )
+
+    def __init__(self, checked=False, parent=None):
+        super().__init__(parent)
+        self._checked = checked
+        self.setObjectName("TaskCheckBox")
+        self.setFixedSize(28, 28)
+        self.setCheckable(False)
+        self.clicked.connect(self._toggle)
+        self._check_pixmap = None
+
+    def isChecked(self) -> bool:
+        return self._checked
+
+    def setChecked(self, val: bool) -> None:
+        self._checked = val
+        self.update()
+
+    def _toggle(self):
+        self._checked = not self._checked
+        self.update()
+        self.clicked.emit()  # re-emit so handler runs
+        # Block further handling — we already toggled.
+        return
+
+    def paintEvent(self, event):
+        from PyQt6.QtGui import QPainter, QPixmap, QColor, QSvgRenderer
+        from PyQt6.QtCore import QRectF
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        rect = QRectF(0, 0, 28, 28)
+        # Background
+        if self._checked:
+            painter.setBrush(QColor("#34c759"))
+            painter.setPen(QColor("#34c759"))
+        else:
+            painter.setBrush(QColor("#ffffff"))
+            painter.setPen(QColor("#d2d2d7"))
+        painter.drawRoundedRect(rect, 6, 6)
+
+        # Checkmark
+        if self._checked:
+            if self._check_pixmap is None:
+                from PyQt6.QtSvg import QSvgRenderer
+                from PyQt6.QtCore import QByteArray
+                renderer = QSvgRenderer(QByteArray(self._CHECK_SVG.encode("utf-8")))
+                self._check_pixmap = QPixmap(28, 28)
+                self._check_pixmap.fill(QColor(0, 0, 0, 0))
+                p2 = QPainter(self._check_pixmap)
+                p2.setRenderHint(QPainter.RenderHint.Antialiasing)
+                renderer.render(p2)
+                p2.end()
+            painter.drawPixmap(0, 0, self._check_pixmap)
+        painter.end()
+
+
 class TaskRowWidget(QFrame):
     """A single task row: checkbox, title, pomodoro count, action buttons."""
 
@@ -300,10 +371,8 @@ class TaskRowWidget(QFrame):
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(10)
 
-        # Done toggle button (checkbox-like) — fixed, never compressed.
-        self.done_btn = QPushButton("☐")
-        self.done_btn.setObjectName("IconBtn")
-        self.done_btn.setFixedSize(28, 28)
+        # Done toggle button (custom checkbox) — fixed, never compressed.
+        self.done_btn = TaskCheckBox(checked=task.status == "done")
         self.done_btn.clicked.connect(lambda: on_toggle_done(task))
         layout.addWidget(self.done_btn)
 
@@ -346,11 +415,10 @@ class TaskRowWidget(QFrame):
 
     def _refresh_state(self):
         done = self.task.status == "done"
+        self.done_btn.setChecked(done)
         if done:
-            self.done_btn.setText("☑")
             self.title_label.setStyleSheet("color: #c7c7cc; text-decoration: line-through;")
         else:
-            self.done_btn.setText("☐")
             self.title_label.setStyleSheet("")
 
     def refresh(self, task: Task):
