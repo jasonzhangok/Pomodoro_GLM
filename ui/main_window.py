@@ -581,11 +581,9 @@ class EditTaskDialog(QDialog):
         layout.addWidget(self.title_input)
 
         layout.addWidget(QLabel("预估番茄数:"))
-        self.spin = QSpinBox()
-        self.spin.setRange(1, 99)
-        self.spin.setValue(task.estimated_pomodoros)
-        self.spin.setPrefix("🍅×")
-        layout.addWidget(self.spin)
+        self.stepper = Stepper(minimum=1, maximum=20)
+        self.stepper.setValue(task.estimated_pomodoros)
+        layout.addWidget(self.stepper)
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
@@ -605,7 +603,7 @@ class EditTaskDialog(QDialog):
         if not new_title:
             return
         self.task.title = new_title
-        self.task.estimated_pomodoros = self.spin.value()
+        self.task.estimated_pomodoros = self.stepper.value()
         self.on_save(self.task)
         self.accept()
 
