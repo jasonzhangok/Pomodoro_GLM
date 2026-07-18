@@ -175,6 +175,53 @@ QPushButton#GhostBtn:hover {
     color: #1d1d1f;
 }
 
+/* Combo boxes (task type selector, history filters) */
+QComboBox {
+    background-color: #ffffff;
+    border: 1px solid #d2d2d7;
+    border-radius: 6px;
+    padding: 4px 10px;
+    color: #1d1d1f;
+    font-size: 13px;
+    min-height: 22px;
+}
+QComboBox:hover {
+    border-color: #b0b0b5;
+}
+QComboBox:focus {
+    border: 1px solid #007aff;
+}
+QComboBox::drop-down {
+    border: none;
+    width: 22px;
+}
+QComboBox::down-arrow {
+    width: 10px;
+    height: 10px;
+}
+QComboBox QAbstractItemView {
+    background-color: #ffffff;
+    border: 1px solid #d2d2d7;
+    border-radius: 6px;
+    padding: 4px;
+    color: #1d1d1f;
+    selection-background-color: #007aff;
+    selection-color: #ffffff;
+    outline: none;
+}
+QComboBox QAbstractItemView::item {
+    padding: 6px 12px;
+    min-height: 24px;
+    color: #1d1d1f;
+}
+QComboBox QAbstractItemView::item:hover {
+    background-color: #f0f0f2;
+}
+QComboBox QAbstractItemView::item:selected {
+    background-color: #007aff;
+    color: #ffffff;
+}
+
 /* Custom stepper */
 QFrame#Stepper {
     border: 1px solid #d2d2d7;
