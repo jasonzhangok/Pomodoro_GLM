@@ -64,14 +64,9 @@ class Task:
     title: str
     estimated_pomodoros: int = 1
     actual_pomodoros: int = 0
-    status: str = "todo"  # "todo" | "in_progress" | "done" | "expired"
+    status: str = "todo"  # "todo" | "in_progress" | "done"
     id: str = field(default_factory=_new_id)
     created_at: str = field(default_factory=_now_iso)
-    # long_term: persists daily. single_day: only today, rolls over if incomplete.
-    task_type: str = "long_term"  # "long_term" | "single_day"
-    # For single_day tasks: the date (YYYY-MM-DD) this task belongs to.
-    task_date: Optional[str] = None
-    completed_at: Optional[str] = None  # ISO timestamp when marked done
 
     def to_dict(self) -> dict:
         return {
@@ -81,24 +76,10 @@ class Task:
             "actual_pomodoros": self.actual_pomodoros,
             "status": self.status,
             "created_at": self.created_at,
-            "task_type": self.task_type,
-            "task_date": self.task_date,
-            "completed_at": self.completed_at,
         }
 
     @classmethod
     def from_dict(cls, d: dict) -> "Task":
-        # Migration: tasks created before task_type existed default to long_term.
-        task_type = str(d.get("task_type", "long_term"))
-        task_date = d.get("task_date")
-        if task_type == "single_day" and not task_date:
-            # Backfill: use created_at's date.
-            try:
-                task_date = datetime.fromisoformat(
-                    str(d.get("created_at", _now_iso()))
-                ).date().isoformat()
-            except (ValueError, TypeError):
-                task_date = datetime.now().date().isoformat()
         return cls(
             id=str(d.get("id", _new_id())),
             title=str(d.get("title", "Untitled")),
@@ -106,9 +87,6 @@ class Task:
             actual_pomodoros=int(d.get("actual_pomodoros", 0)),
             status=str(d.get("status", "todo")),
             created_at=str(d.get("created_at", _now_iso())),
-            task_type=task_type,
-            task_date=task_date,
-            completed_at=d.get("completed_at"),
         )
 
 

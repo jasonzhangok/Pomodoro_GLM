@@ -25,12 +25,9 @@ from typing import Optional
 from PyQt6.QtCore import QEvent, QSize, Qt, QTimer
 from PyQt6.QtWidgets import (
     QApplication,
-    QCheckBox,
-    QComboBox,
     QDialog,
     QFrame,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -38,8 +35,6 @@ from PyQt6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QSpinBox,
-    QTableWidget,
-    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -173,55 +168,6 @@ QPushButton#GhostBtn {
 }
 QPushButton#GhostBtn:hover {
     color: #1d1d1f;
-}
-
-/* Combo boxes (task type selector, history filters) */
-QComboBox {
-    background-color: #ffffff;
-    border: 1px solid #d2d2d7;
-    border-radius: 6px;
-    padding: 4px 10px;
-    color: #1d1d1f;
-    font-size: 13px;
-    min-height: 22px;
-}
-QComboBox:hover {
-    border-color: #b0b0b5;
-}
-QComboBox:focus {
-    border: 1px solid #007aff;
-}
-QComboBox::drop-down {
-    border: none;
-    width: 22px;
-}
-QComboBox::down-arrow {
-    width: 10px;
-    height: 10px;
-}
-QComboBox QAbstractItemView {
-    background-color: #ffffff;
-    border: 1px solid #d2d2d7;
-    border-radius: 6px;
-    padding: 4px;
-    color: #1d1d1f;
-    selection-background-color: #007aff;
-    selection-color: #ffffff;
-    outline: none;
-}
-QComboBox QAbstractItemView::item {
-    padding: 6px 12px;
-    min-height: 24px;
-    color: #1d1d1f;
-    background-color: #ffffff;
-}
-QComboBox QAbstractItemView::item:hover {
-    background-color: #f0f0f2;
-    color: #1d1d1f;
-}
-QComboBox QAbstractItemView::item:selected {
-    background-color: #007aff;
-    color: #ffffff;
 }
 
 /* Custom stepper */
@@ -575,7 +521,7 @@ class Stepper(QFrame):
 
 
 class AddTaskDialog(QFrame):
-    """Inline add-task form: title input + type selector + stepper + add button."""
+    """Inline add-task form: title input + custom stepper + add button."""
 
     def __init__(self, on_add, parent=None):
         super().__init__(parent)
@@ -592,16 +538,6 @@ class AddTaskDialog(QFrame):
         self.title_input.returnPressed.connect(self._submit)
         layout.addWidget(self.title_input, stretch=1)
 
-        # Task type selector
-        self.type_combo = QComboBox()
-        self.type_combo.addItem("长期任务", "long_term")
-        self.type_combo.addItem("仅今天", "single_day")
-        self.type_combo.setFixedHeight(32)
-        # Give the combo enough width to display "长期任务" fully.
-        self.type_combo.setMinimumWidth(120)
-        self.type_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
-        layout.addWidget(self.type_combo)
-
         self.stepper = Stepper(minimum=1, maximum=20)
         layout.addWidget(self.stepper)
 
@@ -616,8 +552,7 @@ class AddTaskDialog(QFrame):
         if not title:
             return
         est = self.stepper.value()
-        task_type = self.type_combo.currentData()
-        self.on_add(title, est, task_type)
+        self.on_add(title, est)
         self.title_input.clear()
         self.stepper.setValue(1)
 
@@ -806,135 +741,6 @@ class FocusModeOverlay(QWidget):
             super().keyPressEvent(event)
 
 
-class HistoryWindow(QDialog):
-    """Modal window showing all historical tasks with filters and sorting."""
-
-    def __init__(self, store, parent=None):
-        super().__init__(parent)
-        self.store = store
-        self.setWindowTitle("历史任务")
-        self.setMinimumSize(800, 500)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(10)
-
-        title = QLabel("📋 历史任务")
-        title.setStyleSheet("font-size: 18px; font-weight: 600;")
-        layout.addWidget(title)
-
-        # --- Filter row ---
-        filter_row = QHBoxLayout()
-        filter_row.setSpacing(8)
-
-        filter_row.addWidget(QLabel("任务类型:"))
-        self.type_filter = QComboBox()
-        self.type_filter.addItem("全部", "all")
-        self.type_filter.addItem("长期任务", "long_term")
-        self.type_filter.addItem("仅今天", "single_day")
-        self.type_filter.currentIndexChanged.connect(self._refresh_table)
-        filter_row.addWidget(self.type_filter)
-
-        filter_row.addWidget(QLabel("状态:"))
-        self.status_filter = QComboBox()
-        self.status_filter.addItem("全部", "all")
-        self.status_filter.addItem("待办", "todo")
-        self.status_filter.addItem("进行中", "in_progress")
-        self.status_filter.addItem("已完成", "done")
-        self.status_filter.addItem("已过期", "expired")
-        self.status_filter.currentIndexChanged.connect(self._refresh_table)
-        filter_row.addWidget(self.status_filter)
-
-        filter_row.addWidget(QLabel("日期:"))
-        self.date_filter = QComboBox()
-        self.date_filter.addItem("全部", "all")
-        self.date_filter.addItem("今天", "today")
-        self.date_filter.addItem("3天内", "3d")
-        self.date_filter.addItem("一周内", "1w")
-        self.date_filter.currentIndexChanged.connect(self._refresh_table)
-        filter_row.addWidget(self.date_filter)
-
-        filter_row.addStretch()
-        layout.addLayout(filter_row)
-
-        # --- Table ---
-        self.table = QTableWidget(0, 7)
-        self.table.setHorizontalHeaderLabels(
-            ["标题", "类型", "计划", "实际", "创建时间", "完成时间", "状态"]
-        )
-        self.table.horizontalHeader().setStretchLastSection(False)
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table.setAlternatingRowColors(True)
-        self.table.verticalHeader().setVisible(False)
-        layout.addWidget(self.table, stretch=1)
-
-        # --- Close button ---
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-        close_btn = QPushButton("关闭")
-        close_btn.clicked.connect(self.accept)
-        btn_row.addWidget(close_btn)
-        layout.addLayout(btn_row)
-
-        self._refresh_table()
-
-    def _refresh_table(self):
-        tasks = self.store.get_tasks()
-        type_val = self.type_filter.currentData()
-        status_val = self.status_filter.currentData()
-        date_val = self.date_filter.currentData()
-
-        now = datetime.now()
-        date_cutoffs = {
-            "today": now.replace(hour=0, minute=0, second=0, microsecond=0),
-            "3d": now - timedelta(days=3),
-            "1w": now - timedelta(weeks=1),
-        }
-
-        def _parse(s):
-            try:
-                return datetime.fromisoformat(s)
-            except (ValueError, TypeError):
-                return None
-
-        filtered = []
-        for t in tasks:
-            if type_val != "all" and t.task_type != type_val:
-                continue
-            if status_val != "all" and t.status != status_val:
-                continue
-            if date_val != "all":
-                created = _parse(t.created_at)
-                if created is None:
-                    continue
-                cutoff = date_cutoffs.get(date_val)
-                if cutoff and created < cutoff:
-                    continue
-            filtered.append(t)
-
-        # Sort by created_at descending
-        filtered.sort(key=lambda t: t.created_at, reverse=True)
-
-        self.table.setRowCount(len(filtered))
-        type_labels = {"long_term": "长期", "single_day": "单日"}
-        status_labels = {
-            "todo": "待办",
-            "in_progress": "进行中",
-            "done": "已完成",
-            "expired": "已过期",
-        }
-        for row, t in enumerate(filtered):
-            self.table.setItem(row, 0, QTableWidgetItem(t.title))
-            self.table.setItem(row, 1, QTableWidgetItem(type_labels.get(t.task_type, t.task_type)))
-            self.table.setItem(row, 2, QTableWidgetItem(str(t.estimated_pomodoros)))
-            self.table.setItem(row, 3, QTableWidgetItem(str(t.actual_pomodoros)))
-            self.table.setItem(row, 4, QTableWidgetItem(t.created_at))
-            self.table.setItem(row, 5, QTableWidgetItem(t.completed_at or "—"))
-            self.table.setItem(row, 6, QTableWidgetItem(status_labels.get(t.status, t.status)))
-
-
 class MainWindow(QWidget):
     """The main application window: timer + task list."""
 
@@ -1042,10 +848,6 @@ class MainWindow(QWidget):
         section_label.setObjectName("SectionHeader")
         task_header.addWidget(section_label)
         task_header.addStretch()
-        # History button
-        self.history_btn = QPushButton("📋 历史任务")
-        self.history_btn.clicked.connect(self._on_history_clicked)
-        task_header.addWidget(self.history_btn)
         self.add_btn = QPushButton("+ 添加")
         self.add_btn.clicked.connect(self._on_add_task_clicked)
         task_header.addWidget(self.add_btn)
@@ -1081,36 +883,15 @@ class MainWindow(QWidget):
             if w is not None:
                 w.deleteLater()
 
-        # Roll over single_day tasks: if a single_day task is incomplete
-        # and its task_date is before today, mark it expired and move its
-        # task_date forward to today so it keeps showing in the list.
-        today = datetime.now().date().isoformat()
-        all_tasks = self.store.get_tasks()
-        changed = False
-        for t in all_tasks:
-            if t.task_type == "single_day" and t.status not in ("done", "expired"):
-                if t.task_date and t.task_date < today:
-                    t.status = "expired"
-                    changed = True
-        if changed:
-            for t in all_tasks:
-                self.store.update_task(t)
-
-        # Today's task list: long_term tasks always show; single_day tasks
-        # only show if their task_date equals today.
-        today_tasks = [
-            t for t in all_tasks
-            if t.task_type == "long_term"
-            or (t.task_type == "single_day" and t.task_date == today)
-        ]
-        if not today_tasks:
+        tasks = self.store.get_tasks()
+        if not tasks:
             empty = QLabel("（暂无任务，点击 + 添加）")
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
             empty.setStyleSheet("color: #86868b; padding: 40px;")
             self.task_list_layout.addWidget(empty)
             return
 
-        for task in today_tasks:
+        for task in tasks:
             row = TaskRowWidget(
                 task=task,
                 on_start=self._on_task_start,
@@ -1336,9 +1117,6 @@ class MainWindow(QWidget):
     def eventFilter(self, obj, event):
         """Close the add-task form when clicking outside it."""
         if self.add_form.isVisible() and event.type() == QEvent.Type.MouseButtonPress:
-            # Don't close if the click is inside the combo dropdown popup.
-            if isinstance(obj, QWidget) and obj.windowFlags() & Qt.WindowType.Popup:
-                return super().eventFilter(obj, event)
             # Map the global click position to the form's coordinate space.
             global_pos = event.globalPosition().toPoint()
             form_pos = self.add_form.mapFromGlobal(global_pos)
@@ -1348,13 +1126,8 @@ class MainWindow(QWidget):
                 return True  # event handled
         return super().eventFilter(obj, event)
 
-    def _on_add_task_submit(self, title: str, estimated: int, task_type: str = "long_term"):
-        task = Task(
-            title=title,
-            estimated_pomodoros=estimated,
-            task_type=task_type,
-            task_date=datetime.now().date().isoformat() if task_type == "single_day" else None,
-        )
+    def _on_add_task_submit(self, title: str, estimated: int):
+        task = Task(title=title, estimated_pomodoros=estimated)
         self.store.add_task(task)
         self._refresh_task_list()
 
@@ -1393,10 +1166,8 @@ class MainWindow(QWidget):
     def _on_task_toggle_done(self, task: Task):
         if task.status == "done":
             task.status = "todo"
-            task.completed_at = None
         else:
             task.status = "done"
-            task.completed_at = datetime.now().isoformat()
         self.store.update_task(task)
         self._refresh_task_list()
 
@@ -1443,14 +1214,6 @@ class MainWindow(QWidget):
         layout.addWidget(close_btn)
 
         dlg.exec()
-
-    # ------------------------------------------------------------------
-    # history window
-    # ------------------------------------------------------------------
-    def _on_history_clicked(self):
-        """Open the history window showing all historical tasks."""
-        win = HistoryWindow(store=self.store, parent=self)
-        win.exec()
 
     # ------------------------------------------------------------------
     # cleanup
