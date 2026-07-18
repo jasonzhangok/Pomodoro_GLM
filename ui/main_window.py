@@ -213,9 +213,11 @@ QComboBox QAbstractItemView::item {
     padding: 6px 12px;
     min-height: 24px;
     color: #1d1d1f;
+    background-color: #ffffff;
 }
 QComboBox QAbstractItemView::item:hover {
     background-color: #f0f0f2;
+    color: #1d1d1f;
 }
 QComboBox QAbstractItemView::item:selected {
     background-color: #007aff;
@@ -595,6 +597,9 @@ class AddTaskDialog(QFrame):
         self.type_combo.addItem("长期任务", "long_term")
         self.type_combo.addItem("仅今天", "single_day")
         self.type_combo.setFixedHeight(32)
+        # Give the combo enough width to display "长期任务" fully.
+        self.type_combo.setMinimumWidth(120)
+        self.type_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         layout.addWidget(self.type_combo)
 
         self.stepper = Stepper(minimum=1, maximum=20)
@@ -1331,6 +1336,9 @@ class MainWindow(QWidget):
     def eventFilter(self, obj, event):
         """Close the add-task form when clicking outside it."""
         if self.add_form.isVisible() and event.type() == QEvent.Type.MouseButtonPress:
+            # Don't close if the click is inside the combo dropdown popup.
+            if isinstance(obj, QWidget) and obj.windowFlags() & Qt.WindowType.Popup:
+                return super().eventFilter(obj, event)
             # Map the global click position to the form's coordinate space.
             global_pos = event.globalPosition().toPoint()
             form_pos = self.add_form.mapFromGlobal(global_pos)
