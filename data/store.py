@@ -40,7 +40,12 @@ _REQUIRED_SETTINGS_FIELDS = {
 
 
 def _validate_schema(data: dict) -> None:
-    """Raise ValueError if the data dict is not a valid store document."""
+    """Raise ValueError if the data dict is not a valid store document.
+
+    Note: ``task_type``, ``task_date``, and ``completed_at`` are optional
+    on disk to preserve backwards compatibility with tasks created before
+    those fields existed. :meth:`Task.from_dict` fills in defaults.
+    """
     if not isinstance(data, dict):
         raise ValueError("Top-level JSON must be an object.")
 
